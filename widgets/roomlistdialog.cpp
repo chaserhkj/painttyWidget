@@ -11,41 +11,41 @@ RoomListDialog::RoomListDialog(QWidget *parent) :
     newRoomWindow(new NewRoomWindow(this))
 {
     ui->setupUi(this);
-    connect(ui->pushButton_4,&QPushButton::clicked,
-            this, &RoomListDialog::reject);
-    connect(ui->pushButton_4,&QPushButton::clicked,
-            this, &RoomListDialog::saveNick);
-    connect(ui->pushButton_3,&QPushButton::clicked,
-            this, &RoomListDialog::requestRoomList);
-    connect(ui->pushButton_2,&QPushButton::clicked,
-            this, &RoomListDialog::requestJoin);
-    connect(ui->tableWidget,&QTableWidget::cellDoubleClicked,
-            this,&RoomListDialog::requestJoin);
-    connect(ui->checkBox, &QCheckBox::clicked,
-            this,&RoomListDialog::filterRoomList);
+    connect(ui->pushButton_4,SIGNAL(clicked()),
+            this, SLOT(reject()));
+    connect(ui->pushButton_4,SIGNAL(clicked()),
+            this, SLOT(saveNick()));
+    connect(ui->pushButton_3,SIGNAL(clicked()),
+            this, SLOT(requestRoomList()));
+    connect(ui->pushButton_2,SIGNAL(clicked()),
+            this, SLOT(requestJoin()));
+    connect(ui->tableWidget,SIGNAL(cellDoubleClicked()),
+            this,SLOT(requestJoin()));
+    connect(ui->checkBox, SIGNAL(clicked()),
+            this,SLOT(filterRoomList()));
 
-    connect(ui->pushButton, &QPushButton::clicked,
-            newRoomWindow, &NewRoomWindow::show);
-    connect(newRoomWindow, &NewRoomWindow::newRoom,
-            this,&RoomListDialog::requestNewRoom);
-    connect(CommandSocket::cmdSocket(), &CommandSocket::connected,
-            this, &RoomListDialog::onCmdServerConnected);
-    connect(CommandSocket::cmdSocket(), &CommandSocket::newData,
-            this, &RoomListDialog::onCmdServerData);
+    connect(ui->pushButton, SIGNAL(clicked()),
+            newRoomWindow, SLOT(show()));
+    connect(newRoomWindow, SIGNAL(newRoom(const QVariantMap &)),
+            this,SLOT(requestNewRoom(const QVariantMap &)));
+    connect(CommandSocket::cmdSocket(), SIGNAL(connected()),
+            this, SLOT(onCmdServerConnected()));
+    connect(CommandSocket::cmdSocket(), SIGNAL(newData(const QByteArray &)),
+            this, SLOT(onCmdServerData(const QByteArray &)));
 
     tableInit();
     socketInit();
     timer = new QTimer(this);
-    connect(timer,&QTimer::timeout,
-            this,&RoomListDialog::requestRoomList);
+    connect(timer,SIGNAL(timeout()),
+            this,SLOT(requestRoomList()));
     timer->start(10000);
     loadNick();
 }
 
 RoomListDialog::~RoomListDialog()
 {
-    disconnect(socket,&Socket::disconnected,
-               this,&RoomListDialog::onServerClosed);
+    disconnect(socket,SIGNAL(disconnected()),
+               this,SLOT(onServerClosed()));
     socket->close();
     delete ui;
     delete socket;
@@ -70,12 +70,12 @@ void RoomListDialog::socketInit()
     ui->progressBar->setRange(0,0);
     socket = new Socket;
 //    socket->setCompressed(false);
-    connect(socket,&Socket::newData,
-            this,&RoomListDialog::onRoomListUpdate);
-    connect(socket,&Socket::connected,
-            this,&RoomListDialog::requestRoomList);
-    connect(socket,&Socket::disconnected,
-            this,&RoomListDialog::onServerClosed);
+    connect(socket,SIGNAL(newData(const QByteArray &)),
+            this,SLOT(onRoomListUpdate(const QByteArray &)));
+    connect(socket,SIGNAL(connected()),
+            this,SLOT(requestRoomList()));
+    connect(socket,SIGNAL(disconnected()),
+            this,SLOT(onServerClosed()));
 #ifdef DEBUG
     //    socket->connectToHost(QHostAddress::LocalHost, 3030);
     socket->connectToHost("192.168.1.104", 3030);

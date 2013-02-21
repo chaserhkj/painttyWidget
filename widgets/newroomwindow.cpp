@@ -8,14 +8,14 @@ NewRoomWindow::NewRoomWindow(QWidget *parent) :
     ui->setupUi(this);
     ui->buttonBox->
             button(QDialogButtonBox::Ok)->setEnabled(false);
-    connect(ui->lineEdit, &QLineEdit::textChanged,
-            this, &NewRoomWindow::onNameChanged);
+    connect(ui->lineEdit, SIGNAL(textChanged(const QString &)),
+            this, SLOT(onNameChanged(const QString &)));
     connect(ui->buttonBox->button(QDialogButtonBox::Ok),
-            &QPushButton::clicked,
-            this, &NewRoomWindow::onOk);
+            SIGNAL(clicked()),
+            this, SLOT(onOk()));
     connect(ui->buttonBox->button(QDialogButtonBox::Cancel),
-            &QPushButton::clicked,
-            this, &NewRoomWindow::onCancel);
+            SIGNAL(clicked()),
+            this, SLOT(onCancel()));
 }
 
 NewRoomWindow::~NewRoomWindow()
