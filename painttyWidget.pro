@@ -5,8 +5,6 @@
 #-------------------------------------------------
 
 
-DEFINES += DEBUG
-
 QT       += core gui network widgets
 
 win32 {
@@ -87,3 +85,5 @@ FORMS    += widgets/mainwindow.ui \
 UI_DIR = widgets/
 
 TRANSLATIONS += translations/paintty_zh_CN.ts
+
+RESOURCES += resources.qrc
