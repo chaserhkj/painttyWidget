@@ -39,7 +39,7 @@ Canvas::Canvas(QWidget *parent) :
     inPicker = false;
     drawing = false;
     opacity = 1.0;
-    brush_ = BrushPointer(new Brush);
+    brush_ = BrushPointer(new Brush(this));
     changeBrush("pencilButton");
     updateCursor(brush_->width());
 
@@ -154,16 +154,16 @@ BrushPointer Canvas::brushFactory(const QString &name)
     BrushPointer b;
     QString n_name = name.toLower();
     if(n_name.compare("brush") == 0){
-        b = BrushPointer(new Brush);
+        b = BrushPointer(new Brush(this));
     }else if(n_name.compare("pencil") == 0){
-        b = BrushPointer(new Pencil);
+        b = BrushPointer(new Pencil(this));
     }else if(n_name.compare("sketch") == 0){
-        b = BrushPointer(new SketchBrush);
+        b = BrushPointer(new SketchBrush(this));
     }else if(n_name.compare("eraser") == 0){
-        b = BrushPointer(new Eraser);
+        b = BrushPointer(new Eraser(this));
     }else{
         qDebug()<<name<<"cannot identify";
-        return BrushPointer(new Brush);
+        return BrushPointer(new Brush(this));
     }
     return b;
 }
@@ -180,6 +180,7 @@ void Canvas::changeBrush(const QString &name)
 {
     QVariantMap currentSettings;
     QPixmap *sur = brush_->surface();
+    QPointF lp = brush_->lastPoint();
 
     QString brushName = name.toLower();
     brushName.chop(6);
@@ -192,7 +193,7 @@ void Canvas::changeBrush(const QString &name)
         currentSettings = brush_->defaultInfo();
     }
 
-    brush_->setDirectDraw(true);
+    brush_->setLastPoint(lp);
     brush_->setSurface(sur);
     updateCursor(brush_->width());
 
@@ -336,13 +337,17 @@ void Canvas::remoteDrawPoint(const QPoint &point, const QVariantMap &brushInfo,
 
     QString brushName = brushInfo["name"].toString();
     int width = brushInfo["width"].toInt();
-    QColor color = brushInfo["color"].value<QColor>();
+    QVariantMap colorMap = brushInfo["color"].toMap();
+    QColor color(colorMap["red"].toInt(),
+            colorMap["green"].toInt(),
+            colorMap["blue"].toInt(),
+            colorMap["alpha"].toInt());
+//    QColor color = brushInfo["color"].value<QColor>();
 
     if(remoteBrush.contains(userid)){
         BrushPointer t = remoteBrush[userid];
         if(brushInfo != t->brushInfo()){
             BrushPointer newOne = brushFactory(brushName);
-            newOne->setDirectDraw(true);
             newOne->setSurface(l->imagePtr());
             newOne->setWidth(width);
             newOne->setColor(color);
@@ -358,7 +363,6 @@ void Canvas::remoteDrawPoint(const QPoint &point, const QVariantMap &brushInfo,
         }
     }else{
         BrushPointer newOne = brushFactory(brushName);
-        newOne->setDirectDraw(true);
         newOne->setSurface(l->imagePtr());
         newOne->setWidth(width);
         newOne->setColor(color);
@@ -392,13 +396,16 @@ void Canvas::remoteDrawLine(const QPoint &start, const QPoint &end,
 
     QString brushName = brushInfo["name"].toString();
     int width = brushInfo["width"].toInt();
-    QColor color = brushInfo["color"].value<QColor>();
+    QVariantMap colorMap = brushInfo["color"].toMap();
+    QColor color(colorMap["red"].toInt(),
+            colorMap["green"].toInt(),
+            colorMap["blue"].toInt(),
+            colorMap["alpha"].toInt());
 
     if(remoteBrush.contains(userid)){
         BrushPointer t = remoteBrush[userid];
         if(brushName != t->brushInfo()["name"].toString()){
             BrushPointer newOne = brushFactory(brushName);
-            newOne->setDirectDraw(true);
             newOne->setSurface(l->imagePtr());
             newOne->setWidth(width);
             newOne->setColor(color);
@@ -414,7 +421,6 @@ void Canvas::remoteDrawLine(const QPoint &start, const QPoint &end,
         }
     }else{
         BrushPointer newOne = brushFactory(brushName);
-        newOne->setDirectDraw(true);
         newOne->setSurface(l->imagePtr());
         newOne->setWidth(width);
         newOne->setColor(color);
@@ -427,16 +433,19 @@ void Canvas::remoteDrawLine(const QPoint &start, const QPoint &end,
 
 void Canvas::onNewData(const QByteArray & array)
 {
-    static quint64 h_size = 0;
-    if(historySize_) {
-        h_size += array.size();
-        if(h_size < quint64(historySize_)){
-            this->setDisabled(true);
-        }else{
-            historySize_ = 0;
-            this->setEnabled(true);
-        }
-    }
+//    static quint64 h_size = 0;
+//    if(historySize_) {
+//        h_size += array.size();
+//        qDebug()<<h_size<<historySize_;
+//        if(h_size < quint64(historySize_)){
+//            this->setDisabled(true);
+//        }else{
+//            historySize_ = 0;
+//            h_size = 0;
+//            this->setEnabled(true);
+//            qDebug()<<"enable!";
+//        }
+//    }
     QVariantMap m = fromJson(array).toMap();
     QString action = m["action"].toString().toLower();
 
@@ -689,9 +698,6 @@ void Canvas::mousePressEvent(QMouseEvent *event)
             drawing = true;
             drawPoint(lastPoint);
         }
-    }else if(event->button() == Qt::RightButton){
-        lastRightPoint = event->pos();
-        setCursor(Qt::SizeAllCursor);
     }
 }
 
@@ -706,8 +712,6 @@ void Canvas::mouseMoveEvent(QMouseEvent *event)
                 lastPoint = event->pos();
             }
         }
-    }else if((event->buttons() & Qt::RightButton)){
-        emit moveCanvasBy(lastRightPoint - event->pos());
     }
 }
 
@@ -723,8 +727,6 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event)
                 updateCursor(brush_->width());
             }
         }
-    }else if(event->button() == Qt::RightButton){
-        updateCursor(brush_->width());
     }
 }
 

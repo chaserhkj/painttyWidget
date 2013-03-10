@@ -6,7 +6,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),
     msgSocket(this),
     dataSocket(this),
-    historySize_(0)
+    historySize_(0),
+    lastBrushButton(nullptr)
 {
     ui->setupUi(this);
     defaultView = saveState();
@@ -15,9 +16,7 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     msgSocket.close();
-    //    msgSocket.deleteLater();
     dataSocket.close();
-    //    dataSocket.deleteLater();
     cmdSocket.close();
     delete ui;
 }
@@ -35,7 +34,8 @@ void MainWindow::stylize()
 
 void MainWindow::init()
 {
-    ui->scrollArea->setBackgroundRole(QPalette::Dark);
+    ui->centralWidget->setBackgroundRole(QPalette::Dark);
+    ui->centralWidget->setCanvas(ui->canvas);
     ui->canvas->setDisabled(true);
     ui->layerWidget->setDisabled(true);
     ui->lineEdit->setDisabled(true);
@@ -102,13 +102,19 @@ void MainWindow::init()
     connect(ui->canvas, SIGNAL(pickColorComplete()),
             this, SLOT(onPickColorComplete()));
 
-    connect(ui->canvas, SIGNAL(moveCanvasBy(QPoint)),
-            this, SLOT(onCanvasMoveBy(QPoint)));
-
     connect(ui->colorGrid, SIGNAL(colorDroped(int)),
             this, SLOT(onColorGridDroped(int)));
     connect(ui->colorGrid, SIGNAL(colorPicked(int,QColor)),
             this, SLOT(onColorGridPicked(int,QColor)));
+    connect(ui->panorama, SIGNAL(refresh()),
+            this, SLOT(onPanoramaRefresh()));
+    connect(ui->centralWidget, SIGNAL(rectChanged(QRect)),
+            ui->panorama, SLOT(onRectChange(QRect)));
+    // use lambda to avoid that long static_cast :)
+    connect(ui->panorama, &PanoramaWidget::moveTo,
+            [&](const QPointF &p){
+        ui->centralWidget->centerOn(p);
+    });
 
     layerWidgetInit();
     colorGridInit();
@@ -123,6 +129,48 @@ void MainWindow::init()
     connect(devConsoleShortCut, SIGNAL(activated()),
             console, SLOT(show()));
 
+    shortcutInit();
+    //    stylize();
+}
+
+void MainWindow::layerWidgetInit()
+{
+    for(int i=0;i<10;++i){
+        addLayer();
+    }
+    ui->layerWidget->itemAt(0)->setSelect(true);
+}
+
+void MainWindow::colorGridInit()
+{
+    QSettings settings(GlobalDef::SETTINGS_NAME,
+                       QSettings::defaultFormat(),
+                       qApp);
+    QByteArray data = settings.value("colorgrid/pal")
+            .toByteArray();
+    if(data.isEmpty()){
+        return;
+    }else{
+        ui->colorGrid->dataImport(data);
+    }
+}
+
+void MainWindow::viewInit()
+{
+    QSettings settings(GlobalDef::SETTINGS_NAME,
+                       QSettings::defaultFormat(),
+                       qApp);
+    QByteArray data = settings.value("mainwindow/view")
+            .toByteArray();
+    if(data.isEmpty()){
+        return;
+    }else{
+        restoreState(data);
+    }
+}
+
+void MainWindow::shortcutInit()
+{
     QShortcut* widthActionSub = new QShortcut(this);
     widthActionSub->setKey(Qt::Key_Q);
     connect(widthActionSub, SIGNAL(activated()),
@@ -131,6 +179,81 @@ void MainWindow::init()
     widthActionAdd->setKey(Qt::Key_W);
     connect(widthActionAdd, SIGNAL(activated()),
             ui->spinBox, SLOT(stepUp()));
+
+    SingleShortcut *pencilShort = new SingleShortcut(this);
+    pencilShort->setKey(Qt::Key_Z);
+    connect(pencilShort, &SingleShortcut::activated,
+            [&](){
+        lastBrushButton =
+                    ui->buttonGroup->checkedButton();
+        if(lastBrushButton)
+            ui->pencilButton->click();
+    });
+    connect(pencilShort, &SingleShortcut::inactivated,
+            [&](){
+        if(lastBrushButton)
+            lastBrushButton->click();
+    });
+
+    SingleShortcut *brushShort = new SingleShortcut(this);
+    brushShort->setKey(Qt::Key_A);
+    connect(brushShort, &SingleShortcut::activated,
+            [&](){
+        lastBrushButton =
+                    ui->buttonGroup->checkedButton();
+        if(lastBrushButton)
+            ui->brushButton->click();
+    });
+    connect(brushShort, &SingleShortcut::inactivated,
+            [&](){
+        if(lastBrushButton)
+            lastBrushButton->click();
+    });
+
+    SingleShortcut *sketchShort = new SingleShortcut(this);
+    sketchShort->setKey(Qt::Key_S);
+    connect(sketchShort, &SingleShortcut::activated,
+            [&](){
+        lastBrushButton =
+                    ui->buttonGroup->checkedButton();
+        if(lastBrushButton)
+            ui->sketchButton->click();
+    });
+    connect(sketchShort, &SingleShortcut::inactivated,
+            [&](){
+        if(lastBrushButton)
+            lastBrushButton->click();
+    });
+
+    SingleShortcut *eraserShort = new SingleShortcut(this);
+    eraserShort->setKey(Qt::Key_E);
+    connect(eraserShort, &SingleShortcut::activated,
+            [&](){
+        lastBrushButton =
+                    ui->buttonGroup->checkedButton();
+        if(lastBrushButton)
+            ui->eraserButton->click();
+    });
+    connect(eraserShort, &SingleShortcut::inactivated,
+            [&](){
+        if(lastBrushButton)
+            lastBrushButton->click();
+    });
+
+    SingleShortcut *pickerShort = new SingleShortcut(this);
+    pickerShort->setKey(Qt::Key_C);
+    connect(pickerShort, &SingleShortcut::activated,
+            [&](){
+        lastBrushButton =
+                ui->buttonGroup->checkedButton();
+        if(lastBrushButton)
+            ui->colorPicker->click();
+    });
+    connect(pickerShort, &SingleShortcut::inactivated,
+            [&](){
+        if(lastBrushButton)
+            lastBrushButton->click();
+    });
 
     connect(ui->action_Quit, SIGNAL(triggered()),
             this, SLOT(close()));
@@ -148,41 +271,6 @@ void MainWindow::init()
             this, SLOT(about()));
     connect(ui->actionAbout_Qt, SIGNAL(triggered()),
             qApp, SLOT(aboutQt()));
-    //    stylize();
-}
-
-void MainWindow::layerWidgetInit()
-{
-    for(int i=0;i<10;++i){
-        addLayer();
-    }
-    ui->layerWidget->itemAt(0)->setSelect(true);
-}
-
-void MainWindow::colorGridInit()
-{
-    QFile file("color.pal");
-    file.open(QIODevice::ReadOnly);
-    QByteArray array = file.readAll();
-    file.close();
-    if(array.isEmpty()){
-        return;
-    }else{
-        ui->colorGrid->dataImport(array);
-    }
-}
-
-void MainWindow::viewInit()
-{
-    QFile file("layout.view");
-    file.open(QIODevice::ReadOnly);
-    QByteArray array = file.readAll();
-    file.close();
-    if(array.isEmpty()){
-        return;
-    }else{
-        restoreState(array);
-    }
 }
 
 void MainWindow::cmdSocketInit(const QHostAddress &add, int port)
@@ -194,17 +282,8 @@ void MainWindow::socketInit(int dataPort, int msgPort)
 {
     ui->canvas->setHistorySize(historySize_);
     ui->textEdit->insertPlainText(tr("Connecting to server...\n"));
-#ifdef DEBUG
-    //    msgSocket.connectToHost(QHostAddress::LocalHost,msgPort);
-    //    dataSocket.connectToHost(QHostAddress::LocalHost,dataPort);
-    msgSocket.connectToHost("192.168.1.104",msgPort);
-    dataSocket.connectToHost("192.168.1.104",dataPort);
-    //    cmdSocket.connectToHost("192.168.1.104",cmdPort);
-#else
-    msgSocket.connectToHost(QHostAddress("42.121.85.47"),msgPort);
-    dataSocket.connectToHost(QHostAddress("42.121.85.47"),dataPort);
-    //    cmdSocket.connectToHost(QHostAddress("42.121.85.47"),cmdPort);
-#endif
+    msgSocket.connectToHost(QHostAddress(GlobalDef::HOST_ADDR),msgPort);
+    dataSocket.connectToHost(QHostAddress(GlobalDef::HOST_ADDR),dataPort);
 }
 
 void MainWindow::setNickName(const QString &name)
@@ -308,34 +387,19 @@ void MainWindow::onColorGridPicked(int, const QColor &c)
     ui->colorBox->setColor(c);
 }
 
-//void MainWindow::brushColorWheelChanged()
-//{
-//    if(noUpdateBrush) return;
-//    brushColor = ui->colorWheel->color();
-//    pressBrushApply();
-//    emit brushColorChange(brushColor);
-//}
-
 void MainWindow::onBrushTypeChange()
 {
     ui->canvas->changeBrush(sender()->objectName());
 }
 
-//void MainWindow::brushColorEditChanged()
-//{
-//    if(noUpdateBrush) return;
-//    noUpdateBrush = true;
-//    QColor color = ui->colorSpinBoxGroup->color();
-//    ui->colorWheel->setColor(color);
-//    brushColor = color;
-//    noUpdateBrush = false;
-//    pressBrushApply();
-//}
-
 void MainWindow::onBrushSettingsChanged(const QVariantMap &m)
 {
     int w = m["width"].toInt();
-    QColor c = m["color"].value<QColor>();
+    QVariantMap colorMap = m["color"].toMap();
+    QColor c(colorMap["red"].toInt(),
+            colorMap["green"].toInt(),
+            colorMap["blue"].toInt(),
+            colorMap["alpha"].toInt());
 
     // INFO: to prevent scaled to 1px, should always
     // change width first
@@ -346,22 +410,28 @@ void MainWindow::onBrushSettingsChanged(const QVariantMap &m)
 
 }
 
-void MainWindow::onCanvasMoveBy(const QPoint &p)
+void MainWindow::onPanoramaRefresh()
 {
-    QScrollBar * bar = ui->scrollArea->horizontalScrollBar();
-    bar->setValue(bar->value()+p.x());
-    bar = ui->scrollArea->verticalScrollBar();
-    bar->setValue(bar->value()+p.y());
+    ui->panorama->onImageChange(ui->canvas->grab(),
+                                ui->centralWidget->visualRect().toRect());
 }
 
 void MainWindow::onColorPickerPressed(bool c)
 {
     ui->canvas->onColorPicker(c);
+    ui->pencilButton->setEnabled(!c);
+    ui->brushButton->setEnabled(!c);
+    ui->sketchButton->setEnabled(!c);
+    ui->eraserButton->setEnabled(!c);
 }
 
 void MainWindow::onPickColorComplete()
 {
     ui->colorPicker->setChecked(false);
+    ui->pencilButton->setEnabled(true);
+    ui->brushButton->setEnabled(true);
+    ui->sketchButton->setEnabled(true);
+    ui->eraserButton->setEnabled(true);
 }
 
 void MainWindow::remoteAddLayer(const QString &layerName)
@@ -407,18 +477,14 @@ void MainWindow::deleteLayer(const QString &name)
 
 void MainWindow::closeEvent ( QCloseEvent * event )
 {
-    QFile file("color.pal");
-    file.open(QIODevice::ReadWrite);
-    file.resize(0);
-    file.write(ui->colorGrid->dataExport());
-    file.close();
-
-    QFile file2("layout.view");
-    file2.open(QIODevice::ReadWrite);
-    file2.resize(0);
-    file2.write(saveState());
-    file2.close();
-
+    QSettings settings(GlobalDef::SETTINGS_NAME,
+                       QSettings::defaultFormat(),
+                       qApp);
+    settings.setValue("colorgrid/pal",
+                      ui->colorGrid->dataExport());
+    settings.setValue("mainwindow/view",
+                      saveState());
+    settings.sync();
     event->accept();
 }
 
@@ -430,6 +496,9 @@ void MainWindow::exportAllToFile()
                                          QDir::currentPath(),
                                          tr("Images (*.png)"));
     fileName = fileName.trimmed();
+    if(fileName.isEmpty()){
+        return;
+    }
     if(!fileName.endsWith(".png", Qt::CaseInsensitive)){
         fileName = fileName + ".png";
     }
@@ -445,6 +514,9 @@ void MainWindow::exportVisibleToFile()
                                          QDir::currentPath(),
                                          tr("Images (*.png)"));
     fileName = fileName.trimmed();
+    if(fileName.isEmpty()){
+        return;
+    }
     if(!fileName.endsWith(".png", Qt::CaseInsensitive)){
         fileName = fileName + ".png";
     }

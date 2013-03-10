@@ -6,53 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>982</width>
-    <height>684</height>
+    <width>693</width>
+    <height>455</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Mr.Paint</string>
   </property>
-  <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout_6">
-    <item>
-     <widget class="QScrollArea" name="scrollArea">
-      <property name="autoFillBackground">
-       <bool>true</bool>
-      </property>
-      <property name="widgetResizable">
-       <bool>false</bool>
-      </property>
-      <widget class="QWidget" name="scrollAreaWidgetContents">
-       <layout class="QVBoxLayout" name="verticalLayout_5">
-        <item>
-         <widget class="Canvas" name="canvas" native="true">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-    </item>
-   </layout>
+  <widget class="CanvasContainer" name="centralWidget">
+   <widget class="Canvas" name="canvas" native="true"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget">
    <property name="features">
@@ -106,9 +68,6 @@
          <property name="text">
           <string>Pencil (Z)</string>
          </property>
-         <property name="shortcut">
-          <string>Z</string>
-         </property>
          <property name="checkable">
           <bool>true</bool>
          </property>
@@ -127,9 +86,6 @@
         <widget class="QPushButton" name="brushButton">
          <property name="text">
           <string>Brush (A)</string>
-         </property>
-         <property name="shortcut">
-          <string>A</string>
          </property>
          <property name="checkable">
           <bool>true</bool>
@@ -150,9 +106,6 @@
          <property name="text">
           <string>Sketch (S)</string>
          </property>
-         <property name="shortcut">
-          <string>S</string>
-         </property>
          <property name="checkable">
           <bool>true</bool>
          </property>
@@ -168,9 +121,6 @@
         <widget class="QPushButton" name="eraserButton">
          <property name="text">
           <string>Eraser (E)</string>
-         </property>
-         <property name="shortcut">
-          <string>E</string>
          </property>
          <property name="checkable">
           <bool>true</bool>
@@ -188,15 +138,22 @@
          <property name="text">
           <string>Color Picker (C)</string>
          </property>
-         <property name="shortcut">
-          <string>C</string>
-         </property>
          <property name="checkable">
           <bool>true</bool>
          </property>
         </widget>
        </item>
       </layout>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBox">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Share Brush Settings</string>
+       </property>
+      </widget>
      </item>
      <item>
       <spacer name="verticalSpacer_2">
@@ -301,7 +258,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>982</width>
+     <width>693</width>
      <height>23</height>
     </rect>
    </property>
@@ -344,6 +301,21 @@
    <addaction name="menu_Edit"/>
    <addaction name="menu_View"/>
    <addaction name="menu_About"/>
+  </widget>
+  <widget class="QDockWidget" name="dockWidget_4">
+   <property name="windowTitle">
+    <string>Panorama</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_5">
+    <layout class="QVBoxLayout" name="verticalLayout_7">
+     <item>
+      <widget class="PanoramaWidget" name="panorama" native="true"/>
+     </item>
+    </layout>
+   </widget>
   </widget>
   <action name="actionExport_All">
    <property name="text">
@@ -390,6 +362,30 @@
     <string>Nothing Here</string>
    </property>
   </action>
+  <action name="actionEnglish">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>English</string>
+   </property>
+  </action>
+  <action name="actionSimplified_Chinese">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Simplified Chinese</string>
+   </property>
+  </action>
+  <action name="actionTraditional_Chinese">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Traditional Chinese</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -416,6 +412,17 @@
    <extends>QWidget</extends>
    <header>colorbox.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PanoramaWidget</class>
+   <extends>QWidget</extends>
+   <header>panoramawidget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CanvasContainer</class>
+   <extends>QGraphicsView</extends>
+   <header>canvascontainer.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -11,14 +11,19 @@ win32 {
      RC_FILE = app.rc
 }
 
+mac {
+    macx-clang: warning("if you encounter \"fatal error: \'initializer_list\' file not found\", try using makespecs \"macx-clang-libc++\"")
+    ICON = iconset/icon.icns
+}
+
 CONFIG += c++11
 
-TARGET = painttyWidget
+TARGET = MrPaint
 TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        widgets/mainwindow.cpp \
+    widgets/mainwindow.cpp \
     widgets/canvas.cpp \
     layermanager.cpp \
     network/messagesocket.cpp \
@@ -44,7 +49,10 @@ SOURCES += main.cpp\
     widgets/colorbox.cpp \
     widgets/newroomwindow.cpp \
     network/commandsocket.cpp \
-    widgets/aboutdialog.cpp
+    widgets/aboutdialog.cpp \
+    widgets/panoramawidget.cpp \
+    singleshortcut.cpp \
+    widgets/canvascontainer.cpp
 
 HEADERS  += widgets/mainwindow.h \
     widgets/canvas.h \
@@ -73,7 +81,11 @@ HEADERS  += widgets/mainwindow.h \
     widgets/colorbox.h \
     widgets/newroomwindow.h \
     network/commandsocket.h \
-    widgets/aboutdialog.h
+    widgets/aboutdialog.h \
+    common.h \
+    widgets/panoramawidget.h \
+    singleshortcut.h \
+    widgets/canvascontainer.h
 
 FORMS    += widgets/mainwindow.ui \
     widgets/roomlistdialog.ui \
@@ -82,8 +94,8 @@ FORMS    += widgets/mainwindow.ui \
     widgets/colorbox.ui \
     widgets/newroomwindow.ui \
     widgets/aboutdialog.ui
-UI_DIR = widgets/
+UI_DIR = $${PWD}/widgets/
 
-TRANSLATIONS += translations/paintty_zh_CN.ts
+TRANSLATIONS += translation/paintty_zh_CN.ts
 
 RESOURCES += resources.qrc
